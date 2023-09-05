@@ -31,7 +31,7 @@ export function Navbar() {
               Buy
             </Link>
             <Link href="/sell" className={styles.link}>
-              Sell
+              Sell / Stake
             </Link>
           </div>
         </div>
