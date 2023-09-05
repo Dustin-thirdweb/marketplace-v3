@@ -3,6 +3,7 @@ import {
   ThirdwebNftMedia,
   useContract,
   useContractEvents,
+  useContractRead,
   useValidDirectListings,
   useValidEnglishAuctions,
   Web3Button,
@@ -39,6 +40,9 @@ export default function TokenPage({ nft, contractMetadata }: Props) {
     MARKETPLACE_ADDRESS,
     "marketplace-v3"
   );
+  const tokenId = nft.metadata.id;
+  const { contract } = useContract(NFT_COLLECTION_ADDRESS);
+  const { data: isStaked, isLoading: loadingStakeStatus } = useContractRead(contract, "isStaked", [tokenId]);
 
   // Connect to NFT Collection smart contract
   const { contract: nftCollection } = useContract(NFT_COLLECTION_ADDRESS);
@@ -280,71 +284,77 @@ export default function TokenPage({ nft, contractMetadata }: Props) {
               </div>
             </div>
 
-            {loadingContract || loadingDirect || loadingAuction ? (
+            {loadingContract || loadingStakeStatus || loadingDirect || loadingAuction ? (
               <Skeleton width="100%" height="164" />
             ) : (
               <>
-                <Web3Button
-                  contractAddress={MARKETPLACE_ADDRESS}
-                  action={async () => await buyListing()}
-                  className={styles.btn}
-                  onSuccess={() => {
-                    toast(`Purchase success!`, {
-                      icon: "✅",
-                      style: toastStyle,
-                      position: "bottom-center",
-                    });
-                  }}
-                  onError={(e) => {
-                    toast(`Purchase failed! Reason: ${e.message}`, {
-                      icon: "❌",
-                      style: toastStyle,
-                      position: "bottom-center",
-                    });
-                  }}
-                >
-                  Buy at asking price
-                </Web3Button>
+                {isStaked ? (
+                  <p>Token is currently staked, unavailable for purchase</p>
+                ) : (
+                  <>
+                    <Web3Button
+                      contractAddress={MARKETPLACE_ADDRESS}
+                      action={async () => await buyListing()}
+                      className={styles.btn}
+                      onSuccess={() => {
+                        toast(`Purchase success!`, {
+                          icon: "✅",
+                          style: toastStyle,
+                          position: "bottom-center",
+                        });
+                      }}
+                      onError={(e) => {
+                        toast(`Purchase failed! Reason: ${e.message}`, {
+                          icon: "❌",
+                          style: toastStyle,
+                          position: "bottom-center",
+                        });
+                      }}
+                    >
+                      Buy at asking price
+                    </Web3Button>
 
-                <div className={`${styles.listingTimeContainer} ${styles.or}`}>
-                  <p className={styles.listingTime}>or</p>
-                </div>
+                    <div className={`${styles.listingTimeContainer} ${styles.or}`}>
+                      <p className={styles.listingTime}>or</p>
+                    </div>
 
-                <input
-                  className={styles.input}
-                  defaultValue={
-                    auctionListing?.[0]?.minimumBidCurrencyValue
-                      ?.displayValue || 0
-                  }
-                  type="number"
-                  step={0.000001}
-                  onChange={(e) => {
-                    setBidValue(e.target.value);
-                  }}
-                />
+                    <input
+                      className={styles.input}
+                      defaultValue={
+                        auctionListing?.[0]?.minimumBidCurrencyValue
+                          ?.displayValue || 0
+                      }
+                      type="number"
+                      step={0.000001}
+                      onChange={(e) => {
+                        setBidValue(e.target.value);
+                      }}
+                    />
 
-                <Web3Button
-                  contractAddress={MARKETPLACE_ADDRESS}
-                  action={async () => await createBidOrOffer()}
-                  className={styles.btn}
-                  onSuccess={() => {
-                    toast(`Bid success!`, {
-                      icon: "✅",
-                      style: toastStyle,
-                      position: "bottom-center",
-                    });
-                  }}
-                  onError={(e) => {
-                    console.log(e);
-                    toast(`Bid failed! Reason: ${e.message}`, {
-                      icon: "❌",
-                      style: toastStyle,
-                      position: "bottom-center",
-                    });
-                  }}
-                >
-                  Place bid
-                </Web3Button>
+                    <Web3Button
+                      contractAddress={MARKETPLACE_ADDRESS}
+                      action={async () => await createBidOrOffer()}
+                      className={styles.btn}
+                      onSuccess={() => {
+                        toast(`Bid success!`, {
+                          icon: "✅",
+                          style: toastStyle,
+                          position: "bottom-center",
+                        });
+                      }}
+                      onError={(e) => {
+                        console.log(e);
+                        toast(`Bid failed! Reason: ${e.message}`, {
+                          icon: "❌",
+                          style: toastStyle,
+                          position: "bottom-center",
+                        });
+                      }}
+                    >
+                      Place bid
+                    </Web3Button>
+                  </>
+                )}
               </>
             )}
           </div>
@@ -369,7 +379,7 @@ export const getStaticProps: GetStaticProps = async (context) => {
 
   try {
     contractMetadata = await contract.metadata.get();
-  } catch (e) {}
+  } catch (e) { }
 
   return {
     props: {
