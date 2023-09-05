@@ -1,11 +1,11 @@
 import { NFT as NFTType } from "@thirdweb-dev/sdk";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-
 import styles from "../../styles/Sale.module.css";
 import profileStyles from "../../styles/Profile.module.css";
 import {
   useContract,
+  useContractRead,
   useCreateAuctionListing,
   useCreateDirectListing,
   Web3Button,
@@ -41,27 +41,24 @@ type DirectFormData = {
 
 export default function SaleInfo({ nft }: Props) {
   const router = useRouter();
-  // Connect to marketplace contract
-  const { contract: marketplace } = useContract(
-    MARKETPLACE_ADDRESS,
-    "marketplace-v3"
+  const { contract: marketplace } = useContract(MARKETPLACE_ADDRESS, "marketplace-v3");
+  const { contract: nftCollection } = useContract(NFT_COLLECTION_ADDRESS);
+  const tokenId = nft.metadata.id;
+  const [isLoading, setIsLoading] = useState(false);
+  const { data: isStaked, isLoading: isCheckingStaked } = useContractRead(
+    nftCollection,
+    "isStaked",
+    [tokenId]
+  );
+  const { mutateAsync: createAuctionListing } = useCreateAuctionListing(marketplace);
+  const { mutateAsync: createDirectListing } = useCreateDirectListing(marketplace);
+  const [tab, setTab] = useState<"direct" | "auction" | "stake">(
+    isStaked ? "stake" : "direct"
   );
 
-  // useContract is a React hook that returns an object with the contract key.
-  // The value of the contract key is an instance of an NFT_COLLECTION on the blockchain.
-  // This instance is created from the contract address (NFT_COLLECTION_ADDRESS)
-  const { contract: nftCollection } = useContract(NFT_COLLECTION_ADDRESS);
-
-  // Hook provides an async function to create a new auction listing
-  const { mutateAsync: createAuctionListing } =
-    useCreateAuctionListing(marketplace);
-
-  // Hook provides an async function to create a new direct listing
-  const { mutateAsync: createDirectListing } =
-    useCreateDirectListing(marketplace);
-
-  // Manage form submission state using tabs and conditional rendering
-  const [tab, setTab] = useState<"direct" | "auction">("direct");
+  useEffect(() => {
+    setTab(isStaked ? "stake" : "direct");
+  }, [isStaked]);
 
   // Manage form values using react-hook-form library: Auction form
   const { register: registerAuction, handleSubmit: handleSubmitAuction } =
@@ -75,6 +72,46 @@ export default function SaleInfo({ nft }: Props) {
         buyoutPrice: "0",
       },
     });
+
+  // Manage form values using react-hook-form library: Direct form
+  const { register: registerDirect, handleSubmit: handleSubmitDirect } =
+    useForm<DirectFormData>({
+      defaultValues: {
+        nftContractAddress: NFT_COLLECTION_ADDRESS,
+        tokenId: nft.metadata.id,
+        startDate: new Date(),
+        endDate: new Date(),
+        price: "0",
+      },
+    });
+
+  const handleStake = async (contract: any) => {
+    setIsLoading(true);
+    try {
+      await contract.call("stake", [tokenId]);
+      toast.success('Successfully staked!');
+    } catch (error) {
+      toast.error(`Failed to stake: ${onmessage}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUnstake = async (contract: any) => {
+    setIsLoading(true);
+    try {
+      await contract.call("unstake", [tokenId]);
+      toast.success('Successfully unstaked!');
+    } catch (error) {
+      toast.error(`Failed to unstake: ${onmessage}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isCheckingStaked) {
+    return <div>Loading...</div>; // or some loading spinner
+  }
 
   // User requires to set marketplace approval before listing
   async function checkAndProvideApproval() {
@@ -102,18 +139,6 @@ export default function SaleInfo({ nft }: Props) {
 
     return true;
   }
-
-  // Manage form values using react-hook-form library: Direct form
-  const { register: registerDirect, handleSubmit: handleSubmitDirect } =
-    useForm<DirectFormData>({
-      defaultValues: {
-        nftContractAddress: NFT_COLLECTION_ADDRESS,
-        tokenId: nft.metadata.id,
-        startDate: new Date(),
-        endDate: new Date(),
-        price: "0",
-      },
-    });
 
   async function handleSubmissionAuction(data: AuctionFormData) {
     await checkAndProvideApproval();
@@ -147,29 +172,56 @@ export default function SaleInfo({ nft }: Props) {
       <Toaster position="bottom-center" reverseOrder={false} />
       <div className={styles.saleInfoContainer} style={{ marginTop: -42 }}>
         <div className={profileStyles.tabs}>
+          {/* Direct tab */}
           <h3
-            className={`${profileStyles.tab} 
-        ${tab === "direct" ? profileStyles.activeTab : ""}`}
-            onClick={() => setTab("direct")}
+            className={`${profileStyles.tab} ${tab === "direct" ? profileStyles.activeTab : ""}`}
+            onClick={() => {
+              if (isStaked) {
+                alert("You must unstake this token before listing.");
+              } else {
+                setTab("direct");
+              }
+            }}
+            style={{ cursor: isStaked ? "not-allowed" : "pointer" }}
           >
             Direct
+            {isStaked && <span style={{ marginLeft: 10, fontSize: '0.8em', color: 'red' }}>❗</span>}
           </h3>
+
+          {/* Auction tab */}
           <h3
-            className={`${profileStyles.tab} 
-        ${tab === "auction" ? profileStyles.activeTab : ""}`}
-            onClick={() => setTab("auction")}
+            className={`${profileStyles.tab} ${tab === "auction" ? profileStyles.activeTab : ""}`}
+            onClick={() => {
+              if (isStaked) {
+                alert("You must unstake this token before listing.");
+              } else {
+                setTab("auction");
+              }
+            }}
+            style={{ cursor: isStaked ? "not-allowed" : "pointer" }}
           >
             Auction
+            {isStaked && <span style={{ marginLeft: 10, fontSize: '0.8em', color: 'red' }}>❗</span>}
           </h3>
+
+
+          {/* Stake/Unstake tab */}
+          <h3
+            className={`${profileStyles.tab} ${tab === "stake" ? profileStyles.activeTab : ""}`}
+            onClick={() => setTab("stake")}
+          >
+            {isStaked ? "Unstake" : "Stake"}
+          </h3>
+
+
         </div>
 
         {/* Direct listing fields */}
         <div
-          className={`${
-            tab === "direct"
-              ? styles.activeTabContent
-              : profileStyles.tabContent
-          }`}
+          className={`${tab === "direct"
+            ? styles.activeTabContent
+            : profileStyles.tabContent
+            }`}
           style={{ flexDirection: "column" }}
         >
           <h4 className={styles.formSectionTitle}>When </h4>
@@ -231,11 +283,10 @@ export default function SaleInfo({ nft }: Props) {
 
         {/* Auction listing fields */}
         <div
-          className={`${
-            tab === "auction"
-              ? styles.activeTabContent
-              : profileStyles.tabContent
-          }`}
+          className={`${tab === "auction"
+            ? styles.activeTabContent
+            : profileStyles.tabContent
+            }`}
           style={{ flexDirection: "column" }}
         >
           <h4 className={styles.formSectionTitle}>When </h4>
@@ -302,6 +353,34 @@ export default function SaleInfo({ nft }: Props) {
           >
             Create Auction Listing
           </Web3Button>
+        </div>
+
+        {/* Stake */}
+        <div
+          className={`${tab === "stake"
+            ? styles.activeTabContent
+            : profileStyles.tabContent
+            }`}
+          style={{ flexDirection: "column" }}
+        >
+
+          {isStaked ? (
+            <Web3Button
+              contractAddress={NFT_COLLECTION_ADDRESS}
+              action={handleUnstake}
+              isDisabled={isLoading}
+            >
+              {isLoading ? 'Unstaking...' : 'Unstake'}
+            </Web3Button>
+          ) : (
+            <Web3Button
+              contractAddress={NFT_COLLECTION_ADDRESS}
+              action={handleStake}
+              isDisabled={isLoading}
+            >
+              {isLoading ? 'Staking...' : 'Stake'}
+            </Web3Button>
+          )}
         </div>
       </div>
     </>
