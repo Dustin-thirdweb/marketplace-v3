@@ -19,6 +19,10 @@ export default function NFTGrid({
   overrideOnclickBehavior,
   emptyText = "No NFTs found for this collection.",
 }: Props) {
+  const filteredData = data?.filter(
+    (nft) => nft.owner !== "0x0000000000000000000000000000000000000000"
+  );
+
   return (
     <div className={styles.nftGridContainer}>
       {isLoading ? (
@@ -27,8 +31,8 @@ export default function NFTGrid({
             <Skeleton key={index} width={"100%"} height="312px" />
           </div>
         ))
-      ) : data && data.length > 0 ? (
-        data.map((nft) =>
+      ) : filteredData && filteredData.length > 0 ? (
+        filteredData.map((nft) =>
           !overrideOnclickBehavior ? (
             <Link
               href={`/token/${NFT_COLLECTION_ADDRESS}/${nft.metadata.id}`}
