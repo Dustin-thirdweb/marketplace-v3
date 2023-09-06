@@ -39,6 +39,14 @@ type DirectFormData = {
   endDate: Date;
 };
 
+const secondsToDhms = (seconds: number) => {
+  const d = Math.floor(seconds / (3600 * 24));
+  const h = Math.floor((seconds % (3600 * 24)) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+
+  return `${d} days, ${h} hours, ${m} minutes`;
+};
+
 export default function SaleInfo({ nft }: Props) {
   const router = useRouter();
   const { contract: marketplace } = useContract(MARKETPLACE_ADDRESS, "marketplace-v3");
@@ -50,6 +58,8 @@ export default function SaleInfo({ nft }: Props) {
     "isStaked",
     [tokenId]
   );
+  const { contract } = useContract(NFT_COLLECTION_ADDRESS);
+  const { data: stakingDuration, isLoading: loadingStakingDuration } = useContractRead(contract, "getCumulativeDurationStaked", [tokenId]);
   const { mutateAsync: createAuctionListing } = useCreateAuctionListing(marketplace);
   const { mutateAsync: createDirectListing } = useCreateDirectListing(marketplace);
   const [tab, setTab] = useState<"direct" | "auction" | "stake">(
@@ -363,15 +373,21 @@ export default function SaleInfo({ nft }: Props) {
             }`}
           style={{ flexDirection: "column" }}
         >
-
           {isStaked ? (
-            <Web3Button
-              contractAddress={NFT_COLLECTION_ADDRESS}
-              action={handleUnstake}
-              isDisabled={isLoading}
-            >
-              {isLoading ? 'Unstaking...' : 'Unstake'}
-            </Web3Button>
+            <>
+              <div>
+                {/* Display staking duration */}
+                <p>Duration staked: {stakingDuration ? secondsToDhms(Number(stakingDuration)) : 'N/A'}</p>
+              </div>
+
+              <Web3Button
+                contractAddress={NFT_COLLECTION_ADDRESS}
+                action={handleUnstake}
+                isDisabled={isLoading}
+              >
+                {isLoading ? 'Unstaking...' : 'Unstake'}
+              </Web3Button>
+            </>
           ) : (
             <Web3Button
               contractAddress={NFT_COLLECTION_ADDRESS}

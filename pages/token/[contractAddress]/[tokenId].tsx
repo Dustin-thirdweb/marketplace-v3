@@ -30,6 +30,14 @@ type Props = {
   contractMetadata: any;
 };
 
+const secondsToDhms = (seconds: number) => {
+  const d = Math.floor(seconds / (3600 * 24));
+  const h = Math.floor((seconds % (3600 * 24)) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+
+  return `${d} days, ${h} hours, ${m} minutes`;
+};
+
 const [randomColor1, randomColor2] = [randomColor(), randomColor()];
 
 export default function TokenPage({ nft, contractMetadata }: Props) {
@@ -43,6 +51,8 @@ export default function TokenPage({ nft, contractMetadata }: Props) {
   const tokenId = nft.metadata.id;
   const { contract } = useContract(NFT_COLLECTION_ADDRESS);
   const { data: isStaked, isLoading: loadingStakeStatus } = useContractRead(contract, "isStaked", [tokenId]);
+  const { data: stakingDuration, isLoading: loadingStakingDuration } = useContractRead(contract, "getCumulativeDurationStaked", [tokenId]);
+
 
   // Connect to NFT Collection smart contract
   const { contract: nftCollection } = useContract(NFT_COLLECTION_ADDRESS);
@@ -283,12 +293,16 @@ export default function TokenPage({ nft, contractMetadata }: Props) {
               </div>
             </div>
 
-            {loadingContract || loadingStakeStatus || loadingDirect || loadingAuction ? (
+            {loadingContract || loadingStakeStatus || loadingDirect || loadingAuction || loadingStakingDuration ? (
               <Skeleton width="100%" height="164" />
             ) : (
               <>
                 {isStaked ? (
-                  <p>Token is currently staked, unavailable for purchase</p>
+                  <div>
+                    <p>Token is currently staked, unavailable for purchase</p>
+                    {/* Display staking duration */}
+                    <p>Time staked : {stakingDuration ? secondsToDhms(Number(stakingDuration)) : 'N/A'}</p>
+                  </div>
                 ) : (
                   <>
                     <Web3Button

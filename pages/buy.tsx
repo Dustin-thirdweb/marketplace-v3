@@ -1,4 +1,4 @@
-import { useContract, useNFTs } from "@thirdweb-dev/react";
+import { useContract, useNFTs, useAddress } from "@thirdweb-dev/react";
 import React from "react";
 import Container from "../components/Container/Container";
 import NFTGrid from "../components/NFT/NFTGrid";
@@ -8,6 +8,7 @@ export default function Buy() {
   // Load all of the NFTs from the NFT Collection
   const { contract } = useContract(NFT_COLLECTION_ADDRESS);
   const { data, isLoading } = useNFTs(contract);
+  const address = useAddress
 
   return (
     <Container maxWidth="lg">
