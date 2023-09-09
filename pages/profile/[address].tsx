@@ -5,7 +5,7 @@ import {
   useValidEnglishAuctions,
 } from "@thirdweb-dev/react";
 import { useRouter } from "next/router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Container from "../../components/Container/Container";
 import ListingWrapper from "../../components/ListingWrapper/ListingWrapper";
 import NFTGrid from "../../components/NFT/NFTGrid";
@@ -16,6 +16,13 @@ import {
 } from "../../const/contractAddresses";
 import styles from "../../styles/Profile.module.css";
 import randomColor from "../../util/randomColor";
+import { Alchemy, Network } from "alchemy-sdk";
+
+const config = {
+  apiKey: "1iMeHtO3yQ_ArIAuw-KPpYNFeIYN_qnI",
+  network: Network.ETH_MAINNET,
+};
+const alchemy = new Alchemy(config);
 
 const [randomColor1, randomColor2, randomColor3, randomColor4] = [
   randomColor(),
@@ -29,6 +36,30 @@ export default function ProfilePage() {
   const [tab, setTab] = useState<"nfts" | "listings" | "auctions">("nfts");
 
   const { contract: nftCollection } = useContract(NFT_COLLECTION_ADDRESS);
+
+  const [displayName, setDisplayName] = useState<string | null>(null);
+
+  const lookupENSName = async (ethAddress: string) => {
+    try {
+      const ensName = await alchemy.core.lookupAddress(ethAddress);
+      if (ensName) {
+        setDisplayName(ensName);
+      } else {
+        setDisplayName(ethAddress);
+      }
+    } catch (error) {
+      console.error("Failed to lookup ENS name:", error);
+      setDisplayName(ethAddress);
+    }
+  };
+
+  // useEffect to perform ENS name lookup when the component loads
+  useEffect(() => {
+    if (router.query.address) {
+      const ethAddress = router.query.address as string;
+      lookupENSName(ethAddress);
+    }
+  }, [router.query.address]);
 
   const { contract: marketplace } = useContract(
     MARKETPLACE_ADDRESS,
@@ -66,10 +97,8 @@ export default function ProfilePage() {
           }}
         />
         <h1 className={styles.profileName}>
-          {router.query.address ? (
-            router.query.address.toString().substring(0, 4) +
-            "..." +
-            router.query.address.toString().substring(38, 42)
+          {displayName !== null ? (
+            displayName
           ) : (
             <Skeleton width="320" />
           )}
