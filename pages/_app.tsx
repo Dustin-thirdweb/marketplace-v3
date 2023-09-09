@@ -10,14 +10,6 @@ function MyApp({ Component, pageProps }: AppProps) {
     <ThirdwebProvider
       clientId={process.env.NEXT_PUBLIC_TEMPLATE_CLIENT_ID}
       activeChain={NETWORK}
-      sdkOptions={{
-        gasless: {
-          biconomy: {
-            apiKey: "1H1voXXnc.7ed91b4d-c0c1-46ef-9c98-ba1eb009d7a5",
-            apiId: "676a861d-1843-49d9-bcf1-b686e38d7d0c",
-          }
-        },
-      }}
     >
       {/* Progress bar when navigating between pages */}
       <NextNProgress

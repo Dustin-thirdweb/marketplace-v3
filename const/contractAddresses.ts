@@ -18,3 +18,5 @@ export const NFT_COLLECTION_ADDRESS =
 export const ETHERSCAN_URL = "https://mumbai.polygonscan.com";
 
 export const themeConst = "";
+
+export const PROFILE_CONTRACT = "0xC204A8CFD7c9803250790116300005C3fFec30c0"

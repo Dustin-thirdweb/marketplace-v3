@@ -1,0 +1,12 @@
+{
+  "name": "KronicKatz.eth",
+  "description": "Customer success engineer for thirdweb",
+  "image": "ipfs://QmYuPb2TaDH3VLcifgD5U624BhrGEXPZycKtSkzuZDp5wQ/qQf2llm5_400x400.png",
+  "background_color": "000000",
+  "attributes": [
+    {
+      "trait_type": "Banner",
+      "value": "ipfs://QmPuWQyAKZuupoh27gNY93X4zr8d6Sd8uYPqEYd2MGxNsQ/twbackground.png"
+    }
+  ]
+}
